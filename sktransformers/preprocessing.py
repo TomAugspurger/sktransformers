@@ -12,14 +12,16 @@ class CategoricalEncoder(TransformerMixin):
         self.ordered = ordered or {}
 
     def fit(self, X, y=None):
-        return self
-
-    def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
-        X = X.copy()
         if not len(self.categories):
             categories = X.select_dtypes(include=[object]).columns
         else:
             categories = self.categories
+        self.cat_cols_ = categories
+        return self
+
+    def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
+        X = X.copy()
+        categories = self.cat_cols_
         for k in categories:
             cat = categories.get(k, None) if hasattr('get') else None
             ordered = categories.get(k, False)
