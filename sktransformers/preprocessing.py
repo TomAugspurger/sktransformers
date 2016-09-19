@@ -11,11 +11,18 @@ class CategoricalEncoder(TransformerMixin):
         self.categories = categories or {}
         self.ordered = ordered or {}
 
+    def fit(self, X, y=None):
+        return self
+
     def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
         X = X.copy()
-        for k in self.categories:
-            cat = self.categories.get(k, None)
-            ordered = self.categories.get(k, False)
+        if not len(self.categories):
+            categories = X.select_dtypes(include=[object]).columns
+        else:
+            categories = self.categories
+        for k in categories:
+            cat = categories.get(k, None) if hasattr('get') else None
+            ordered = categories.get(k, False)
             X[k] = pd.Categorical(X[k],
                                   categories=cat,
                                   ordered=ordered)
@@ -45,7 +52,6 @@ class DummyEncoder(TransformerMixin):
         return self
 
     def transform(self, X, y=None):
-        assert X.columns == self.columns_
         return pd.get_dummies(X)
 
     def inverse_transform(self, X):
