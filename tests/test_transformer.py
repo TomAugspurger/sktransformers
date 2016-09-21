@@ -1,7 +1,8 @@
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import dask.dataframe as dd
+from dask.dataframe.utils import eq
 from sktransformers.preprocessing import CategoricalEncoder, DummyEncoder
 
 
@@ -62,3 +63,10 @@ class TestDummyEncoder:
         ct = DummyEncoder(drop_first=True)
         trn = ct.fit_transform(data)
         assert trn.shape[1] == 8
+
+    def test_da(self, data):
+        a = dd.from_pandas(data, npartitions=2)
+        ct = DummyEncoder()
+        result = ct.fit_transform(a)
+        expected = DummyEncoder().fit_transform(data)
+        assert eq(result, expected)

@@ -3,6 +3,7 @@ Preprocessing Transformers
 """
 # import numpy as np
 import pandas as pd
+import dask.dataframe as dd
 from sklearn.base import TransformerMixin
 
 
@@ -36,7 +37,7 @@ class CategoricalEncoder(TransformerMixin):
 
 class DummyEncoder(TransformerMixin):
 
-    def __init__(self, columns: list=None, drop_first=True):
+    def __init__(self, columns: list=None, drop_first=False):
         self.columns = columns
         self.drop_first = drop_first
 
@@ -66,10 +67,14 @@ class DummyEncoder(TransformerMixin):
         return self
 
     def transform(self, X, y=None):
-        return pd.get_dummies(X, drop_first=self.drop_first)
+        if isinstance(X, pd.DataFrame):
+            return pd.get_dummies(X, drop_first=self.drop_first)
+        elif isinstance(X, dd.DataFrame):
+            return X.map_partitions(pd.get_dummies, drop_first=self.drop_first)
+        else:
+            raise TypeError
 
     def inverse_transform(self, X):
-        raise NotImplementedError
         non_cat = pd.DataFrame(X[:, :len(self.non_cat_columns_)],
                                columns=self.non_cat_columns_)
         cats = []
