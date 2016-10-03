@@ -1,4 +1,5 @@
 move.sh
 dist/
+build/
 __pycache__/
 *.egg-info/

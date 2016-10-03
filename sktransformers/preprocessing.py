@@ -41,7 +41,6 @@ class DummyEncoder(TransformerMixin):
         self.columns = columns
         self.drop_first = drop_first
 
-        self.index_ = None
         self.columns_ = None
         self.cat_columns_ = None  # type: pd.Index
         self.non_cat_columns_ = None  # type: pd.Index
@@ -50,7 +49,6 @@ class DummyEncoder(TransformerMixin):
         self.cat_blocks_ = None
 
     def fit(self, X, y=None):
-        self.index_ = X.index
         self.columns_ = X.columns
         if self.columns is None:
             self.cat_columns_ = X.select_dtypes(include=['category']).columns

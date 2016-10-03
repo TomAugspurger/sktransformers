@@ -1,4 +1,8 @@
+import io
+import os
 import pytest
+import glob
+from sklearn.externals import joblib
 
 import pandas as pd
 import dask.dataframe as dd
@@ -28,6 +32,20 @@ def data():
          }
     )
     return df
+
+
+@pytest.fixture
+def hdf(data):
+    a = dd.from_pandas(data, npartitions=2)
+    pat = 'data*.hdf5'
+    a.to_hdf(pat, 'key')
+    yield dd.read_hdf(pat, 'key', mode='r', lock=True)
+    fps = glob.glob(pat)
+    for fp in fps:
+        try:
+            os.remove(fp)
+        except:
+            pass
 
 
 class TestCategoricalEncoder:
@@ -70,3 +88,12 @@ class TestDummyEncoder:
         result = ct.fit_transform(a)
         expected = DummyEncoder().fit_transform(data)
         assert eq(result, expected)
+
+
+class TestPickle:
+
+    def test_dump(self, hdf):
+        ct = DummyEncoder()
+        ct = ct.fit(hdf)
+        joblib.dump(ct, io.BytesIO())
+
