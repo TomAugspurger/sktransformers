@@ -39,7 +39,7 @@ setup(
     # keywords='sample setuptools development',
     packages=find_packages(exclude=['docs', 'tests']),
 
-    install_requires=[],
+    install_requires=['pandas', 'dask', 'sklearn', ],
 
     extras_require={
         'dev': [],

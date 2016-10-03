@@ -45,7 +45,8 @@ class DummyEncoder(TransformerMixin):
         self.columns_ = None
         self.cat_columns_ = None  # type: pd.Index
         self.non_cat_columns_ = None  # type: pd.Index
-        self.cat_map_ = None
+        self.categories_map_ = None
+        self.ordered_map_ = None
         self.cat_blocks_ = None
 
     def fit(self, X, y=None):
@@ -57,7 +58,10 @@ class DummyEncoder(TransformerMixin):
             self.cat_columns_ = self.columns
         self.non_cat_columns_ = X.columns.drop(self.cat_columns_)
 
-        self.cat_map_ = {col: X[col].cat for col in self.cat_columns_}
+        self.categories_map_ = {col: X[col].cat.categories
+                                for col in self.cat_columns_}
+        self.ordered_map_ = {col: X[col].cat.ordered
+                             for col in self.cat_columns_}
 
         left = len(self.non_cat_columns_)
         self.cat_blocks_ = {}
@@ -78,11 +82,14 @@ class DummyEncoder(TransformerMixin):
         non_cat = pd.DataFrame(X[:, :len(self.non_cat_columns_)],
                                columns=self.non_cat_columns_)
         cats = []
-        for col, cat in self.cat_map_.items():
+        for col in self.cat_columns_:
             slice_ = self.cat_blocks_[col]
+            categories = self.categories_map_[col]
+            ordered = self.ordered_map_[col]
+
             codes = X[:, slice_].argmax(1)
             series = pd.Series(pd.Categorical.from_codes(
-                codes, cat.categories, ordered=cat.ordered
+                codes, categories, ordered=ordered
             ), name=col)
             cats.append(series)
         df = pd.concat([non_cat] + cats, axis=1)[self.columns_]
