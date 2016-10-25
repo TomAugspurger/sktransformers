@@ -106,6 +106,16 @@ class TestCategoricalEncoder:
         assert all(trn['A'].cat.categories == cats)
         assert trn['A'].cat.ordered
 
+    def test_dask(self, raw):
+        a = dd.from_pandas(raw, npartitions=2)
+        ce = CategoricalEncoder()
+        trn = ce.fit_transform(a)
+        assert trn['A'].dtype == 'category'
+        assert trn['B'].dtype == 'category'
+        assert trn['C'].dtype == 'category'
+        assert trn['D'].dtype == int
+        assert all(ce.cat_cols_ == pd.Index(["A", "B", "C"]))
+
 
 class TestDummyEncoder:
 

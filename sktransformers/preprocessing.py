@@ -25,6 +25,7 @@ class Imputer(BaseEstimator, TransformerMixin):
             # TODO: Remove this block
             # Workaround for https://github.com/dask/dask/issues/1701
             self.fill_value_ = self.fill_value_.compute()
+        return self
 
     def transform(self, X, y=None):
         if self.fill_value_ is None:
@@ -48,16 +49,24 @@ class CategoricalEncoder(TransformerMixin):
         return self
 
     def transform(self, X: pd.DataFrame, y=None) -> pd.DataFrame:
-        X = X.copy()
+        is_dask = isinstance(X, dd.DataFrame)
+        if is_dask:
+            X = X.categorize()
+
+        X = X.copy() if hasattr(X, 'copy') else X
         categories = self.cat_cols_
         for k in categories:
             cat = (categories.get(k, None)
                    if hasattr(categories, 'get')
                    else None)
             ordered = self.ordered.get(k, False)
-            X[k] = pd.Categorical(X[k],
-                                  categories=cat,
-                                  ordered=ordered)
+            # can't use Categorical constructor since dask compat
+            if not is_dask:
+                X[k] = pd.Categorical(X[k])
+            if cat:
+                X[k] = X[k].cat.set_categories(cat)
+            if ordered:
+                X[k] = X[k].cat.as_ordered()
         return X
 
 
