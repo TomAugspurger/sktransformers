@@ -4,7 +4,33 @@ Preprocessing Transformers
 # import numpy as np
 import pandas as pd
 import dask.dataframe as dd
-from sklearn.base import TransformerMixin
+from sklearn.base import TransformerMixin, BaseEstimator
+
+
+class Imputer(BaseEstimator, TransformerMixin):
+
+    def __init__(self, missing_values="NaN", strategy="mean"):
+        self.missing_values = missing_values
+        if strategy not in {'mean', 'median'}:
+            raise TypeError("Bad strategy {}".format(strategy))
+        self.strategy = strategy
+        self.fill_value_ = None
+
+    def fit(self, X, y=None):
+        if self.strategy == 'mean':
+            self.fill_value_ = X.mean()
+        elif self.strategy == 'median':
+            self.fill_value_ = X.median()
+        if isinstance(self.fill_value_, dd.Series):
+            # TODO: Remove this block
+            # Workaround for https://github.com/dask/dask/issues/1701
+            self.fill_value_ = self.fill_value_.compute()
+
+    def transform(self, X, y=None):
+        if self.fill_value_ is None:
+            raise TypeError("Must fit first")
+        X = X.copy() if hasattr(X, 'copy') else X
+        return X.fillna(self.fill_value_)
 
 
 class CategoricalEncoder(TransformerMixin):

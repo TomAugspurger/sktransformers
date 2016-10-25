@@ -4,10 +4,13 @@ import pytest
 import glob
 from sklearn.externals import joblib
 
+import numpy as np
 import pandas as pd
 import dask.dataframe as dd
-from dask.dataframe.utils import eq
-from sktransformers.preprocessing import CategoricalEncoder, DummyEncoder
+from dask.dataframe.utils import assert_eq
+from sktransformers.preprocessing import (
+    CategoricalEncoder, DummyEncoder, Imputer
+)
 
 
 @pytest.fixture(scope="module")
@@ -34,6 +37,15 @@ def data():
     return df
 
 
+@pytest.fixture(scope='module')
+def missing_data():
+    df = pd.DataFrame(
+        {"A": [1, 2, 3, 4, 5],
+         "B": [2, 2, np.nan, 4, 5]}
+    )[['A', 'B']]
+    return df
+
+
 @pytest.fixture
 def hdf(data):
     a = dd.from_pandas(data, npartitions=2)
@@ -46,6 +58,32 @@ def hdf(data):
             os.remove(fp)
         except:
             pass
+
+
+class TestImputer:
+
+    @pytest.mark.parametrize('dask', [True, False])
+    def test_mean(self, missing_data, dask):
+        if dask:
+            missing_data = dd.from_pandas(missing_data, npartitions=2)
+        imp = Imputer()
+        imp.fit(missing_data, y=None)
+        assert_eq(imp.fill_value_, pd.Series([3., 3.25], index=['A', 'B']))
+
+        result = imp.transform(missing_data, y=None)
+        expected = pd.DataFrame([[1, 2], [2, 2], [3, 3.25], [4, 4], [5, 5]],
+                                columns=['A', 'B'])
+        assert_eq(result, expected)
+
+    def test_median(self, missing_data):
+        imp = Imputer(strategy='median')
+        imp.fit(missing_data, y=None)
+        assert_eq(imp.fill_value_, pd.Series([3., 3.0], index=['A', 'B']))
+
+        result = imp.transform(missing_data, y=None)
+        expected = pd.DataFrame([[1, 2], [2, 2], [3, 3.0], [4, 4], [5, 5]],
+                                columns=['A', 'B'])
+        assert_eq(result, expected)
 
 
 class TestCategoricalEncoder:
@@ -87,7 +125,7 @@ class TestDummyEncoder:
         ct = DummyEncoder()
         result = ct.fit_transform(a)
         expected = DummyEncoder().fit_transform(data)
-        assert eq(result, expected)
+        assert_eq(result, expected)
 
 
 class TestPickle:
