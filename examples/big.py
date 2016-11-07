@@ -3,6 +3,7 @@ import pandas as pd
 import dask.dataframe as dd
 
 from sklearn.pipeline import make_pipeline
+from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.linear_model import SGDRegressor
 from sklearn.feature_selection import SelectFromModel
 from sktransformers.preprocessing import CategoricalEncoder, DummyEncoder, Imputer
@@ -37,14 +38,18 @@ def fit():
     dX = dd.from_pandas(X, npartitions=10)
     y = dd.from_pandas(y, npartitions=10)
 
-    pipe = make_pipeline(
+    pre_pipe = make_pipeline(
         CategoricalEncoder(),
         DummyEncoder(),
         Imputer(),
+        SGDRegressor(),
     )
 
-    X_ = pipe.fit_transform(dX)
-    clf = SGDRegressor()
+    pipe = make_pipeline(
+        SelectFromModel(pre_pipe),
+        GradientBoostingRegressor(),
+    )
+    X_ = pre_pipe.fit_transform(dX)
 
     for i in range(X_.npartitions):
         for j in range(5):
