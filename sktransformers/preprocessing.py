@@ -11,7 +11,7 @@ class Imputer(BaseEstimator, TransformerMixin):
 
     def __init__(self, missing_values="NaN", strategy="mean"):
         self.missing_values = missing_values
-        if strategy not in {'mean', 'median'}:
+        if strategy not in {'mean', 'median', 'mode'}:
             raise TypeError("Bad strategy {}".format(strategy))
         self.strategy = strategy
         self.fill_value_ = None
@@ -21,6 +21,10 @@ class Imputer(BaseEstimator, TransformerMixin):
             self.fill_value_ = X.mean()
         elif self.strategy == 'median':
             self.fill_value_ = X.median()
+        elif self.strategy == 'mode':
+            self.fill_value_ = X.mode().loc[0]
+            self.fill_value_.name = None
+
         if isinstance(self.fill_value_, dd.Series):
             # TODO: Remove this block
             # Workaround for https://github.com/dask/dask/issues/1701

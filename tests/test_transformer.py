@@ -46,6 +46,14 @@ def missing_data():
     return df
 
 
+@pytest.fixture(scope='module')
+def missing_data_mode():
+    df = pd.DataFrame(
+        {"A": [1, 2, 3, 4, 4],
+         "B": [2, 2, np.nan, 4, 5]}
+    )[['A', 'B']]
+    return df
+
 @pytest.fixture
 def hdf(data):
     a = dd.from_pandas(data, npartitions=2)
@@ -85,6 +93,15 @@ class TestImputer:
                                 columns=['A', 'B'])
         assert_eq(result, expected)
 
+    def test_mode(self, missing_data_mode):
+        imp = Imputer(strategy='mode')
+        imp.fit(missing_data_mode, y=None)
+        assert_eq(imp.fill_value_, pd.Series([4, 2.0], index=['A', 'B']))
+
+        result = imp.transform(missing_data_mode, y=None)
+        expected = pd.DataFrame([[1, 2], [2, 2], [3, 2], [4, 4], [4, 5.]],
+                                columns=['A', 'B'])
+        assert_eq(result, expected)
 
 class TestCategoricalEncoder:
 
